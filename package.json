@@ -1,0 +1,12 @@
+{
+  "name": "rfq-normalizer",
+  "version": "1.0.0",
+  "description": "Comparative purchase engine: landed cost, VAT, present value and split orders for supplier quotes. Runs in the browser, no build step.",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test \"tests/*.test.js\"",
+    "start": "python -m http.server 8000"
+  },
+  "engines": { "node": ">=22" }
+}

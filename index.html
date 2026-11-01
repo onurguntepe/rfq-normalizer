@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mukayese · RFQ Normalizer</title>
+  <meta name="description" content="Tedarikçi tekliflerini şantiye teslim, KDV hariç ve bugünkü peşin karşılık bazında karşılaştıran açık kaynak satınalma motoru.">
+  <meta name="theme-color" content="#121C2E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Martian+Mono:wdth,wght@75..112.5,400..700&display=swap">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<!--
+THESIS: A purchase decision is a cheque you will write. The page refuses the KPI-card dashboard: the verdict is printed as a cheque made out to the supplier that is really cheapest, and every quote is a leaf in a cheque book whose ink fades to what it is worth today.
+OWN-WORLD: Security-printed cheque paper on a sage desk. Pale tinted paper, generated guilloche rosettes, perforated stubs, dotted fill-in lines, MICR band in navy ink. Archivo for the printed form, Martian Mono for amounts. Bank navy is the only action colour; red pen marks what is missing or misleading. Stamps, not badges.
+STORY: The engineer loads quotes, reviews each one before it enters the book, sees the paper-cheapest crossed out in red pen, reads why, and leaves with an approval form and a negotiation plan.
+FIRST VIEWPORT: Left-aligned frame: section rail, sheet, package dock on the right. Top bar with MKG mark, the package and the add-quote action; the MICR band holds funding rate, FX and VAT; the verdict cheque fills the width: payee, amount in words, amount box, stub with the paper illusion, a stamp pressed on.
+FORM: Cheque book (cek koçanı), rank 1 of 7 grounded candidates (assigned 7, user chose the pick); seed key 55e83960.
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+-->
+<a class="atla" href="#ana" data-i18n="skip">İçeriğe geç</a>
+
+<header class="ust" id="ust">
+  <div class="ust-ic">
+    <a class="marka" href="#karar" aria-label="MKG Mukayese">
+      <span class="marka-muhur" aria-hidden="true">MKG</span>
+      <span>
+        <span class="marka-ad" data-i18n="brand">Mukayese</span>
+        <span class="marka-alt">RFQ Normalizer</span>
+      </span>
+    </a>
+    <div class="proje">
+      <span class="proje-kod" id="projeKod">PKT-01</span>
+      <label class="sr" for="projeAd" data-i18n="projectTitle">Paket adı</label>
+      <input class="alan" id="projeAd" type="text" autocomplete="off">
+      <span class="ornek-etiket" id="ornekEtiket" data-i18n="demoBadge">Sentetik örnek veri</span>
+    </div>
+    <div class="ust-sag">
+      <button class="btn paket-btn" id="paketBtn" aria-controls="paketDok" aria-expanded="false" data-i18n="packages">Paketler</button>
+      <button class="btn btn-dolu" id="teklifBtn" data-i18n="addQuote">Teklif ekle</button>
+      <div class="dil" role="group" aria-label="Dil / Language">
+        <button type="button" data-lang="tr" aria-pressed="true">TR</button>
+        <button type="button" data-lang="en" aria-pressed="false">EN</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="micr" id="micr" role="group" aria-labelledby="micrBaslik">
+  <span class="sr" id="micrBaslik" data-i18n="marketParams">Piyasa parametreleri</span>
+  <div class="micr-ic">
+    <div class="micr-alan">
+      <label class="micr-ad" for="pRate" data-i18n="pRate">Aylık fon faizi %</label>
+      <input type="range" id="pRateR" min="0" max="10" step="0.05" aria-hidden="true" tabindex="-1">
+      <input type="number" id="pRate" min="0" max="30" step="0.05" inputmode="decimal">
+      <span class="micr-ek" id="pRateYil"></span>
+    </div>
+    <div class="micr-alan">
+      <label class="micr-ad" for="pEur">EUR</label>
+      <input type="number" id="pEur" min="0" step="0.01" inputmode="decimal">
+      <label class="micr-ad" for="pEurG" data-i18n="pGrowth">Aylık artış %</label>
+      <input type="number" id="pEurG" min="-10" max="20" step="0.05" inputmode="decimal">
+    </div>
+    <div class="micr-alan">
+      <label class="micr-ad" for="pUsd">USD</label>
+      <input type="number" id="pUsd" min="0" step="0.01" inputmode="decimal">
+      <label class="micr-ad" for="pUsdG" data-i18n="pGrowth">Aylık artış %</label>
+      <input type="number" id="pUsdG" min="-10" max="20" step="0.05" inputmode="decimal">
+    </div>
+    <div class="micr-alan">
+      <label class="micr-ad" for="pVat" data-i18n="pVat">KDV %</label>
+      <input type="number" id="pVat" min="0" max="50" step="1" inputmode="decimal">
+    </div>
+  </div>
+</div>
+
+<div class="duzen">
+  <nav class="ray" aria-label="Bölümler" id="ray">
+    <ol>
+      <li><a href="#karar" data-bolum="karar"><span class="ray-ad" data-i18n="navVerdict">Karar</span><span class="ray-not" id="rayKarar"></span></a></li>
+      <li><a href="#giris" data-bolum="giris"><span class="ray-ad" data-i18n="navIntake">Teklif girişi</span><span class="ray-not" id="rayGiris"></span></a></li>
+      <li><a href="#defter" data-bolum="defter"><span class="ray-ad" data-i18n="navBook">Teklif defteri</span><span class="ray-not" id="rayDefter"></span></a></li>
+      <li><a href="#cetvel" data-bolum="cetvel"><span class="ray-ad" data-i18n="navLedger">Mukayese cetveli</span><span class="ray-not" id="rayCetvel"></span></a></li>
+      <li><a href="#kirilma" data-bolum="kirilma"><span class="ray-ad" data-i18n="navRate">Faiz kırılması</span><span class="ray-not" id="rayKirilma"></span></a></li>
+      <li><a href="#bolunmus" data-bolum="bolunmus"><span class="ray-ad" data-i18n="navSplit">Bölünmüş sipariş</span><span class="ray-not" id="rayBolunmus"></span></a></li>
+      <li><a href="#pazarlik" data-bolum="pazarlik"><span class="ray-ad" data-i18n="navNego">Pazarlık</span><span class="ray-not" id="rayPazarlik"></span></a></li>
+      <li><a href="#ciktilar" data-bolum="ciktilar"><span class="ray-ad" data-i18n="navOut">Çıktılar</span><span class="ray-not"></span></a></li>
+    </ol>
+  </nav>
+
+  <main class="ana" id="ana">
+    <section class="bolum" id="karar" aria-labelledby="kararBaslik">
+      <h1 class="sr" id="kararBaslik" data-i18n="verdictTitle">Karar</h1>
+      <div id="kararIc"></div>
+    </section>
+
+    <section class="bolum" id="giris" aria-labelledby="girisBaslik">
+      <div class="bolum-bas">
+        <div>
+          <h2 id="girisBaslik" data-i18n="intakeTitle">Teklif girişi</h2>
+          <p data-i18n="intakeLead"></p>
+        </div>
+      </div>
+      <div class="giris-kap">
+        <div class="sekmeler" role="tablist" id="sekmeler" aria-labelledby="girisBaslik">
+          <button role="tab" id="sk-ai" aria-controls="masaGovde" aria-selected="true" data-sekme="ai"><span class="mod-no">1</span><span data-i18n="tabAi">Yapay zekâ</span></button>
+          <button role="tab" id="sk-kopru" aria-controls="masaGovde" aria-selected="false" data-sekme="kopru"><span class="mod-no">2</span><span data-i18n="tabBridge">Kopyala-yapıştır köprüsü</span></button>
+          <button role="tab" id="sk-elle" aria-controls="masaGovde" aria-selected="false" data-sekme="elle"><span class="mod-no">3</span><span data-i18n="tabManual">Elle giriş ve Excel</span></button>
+        </div>
+        <div class="masa-govde" id="masaGovde" role="tabpanel"></div>
+      </div>
+    </section>
+
+    <section class="bolum" id="defter" aria-labelledby="defterBaslik">
+      <div class="bolum-bas">
+        <div>
+          <h2 id="defterBaslik" data-i18n="bookTitle">Teklif defteri</h2>
+          <p data-i18n="bookLead"></p>
+        </div>
+      </div>
+      <div class="defter" id="defterIc"></div>
+    </section>
+
+    <section class="bolum" id="cetvel" aria-labelledby="cetvelBaslik">
+      <div class="bolum-bas">
+        <div>
+          <h2 id="cetvelBaslik" data-i18n="ledgerTitle">Mukayese cetveli</h2>
+          <p id="cetvelAciklama"></p>
+        </div>
+        <div class="bolum-arac">
+          <div class="segment" role="group" aria-label="Tablo bazı" id="gorunum">
+            <button type="button" data-gorunum="paper" aria-pressed="false" data-i18n="viewPaper">Kağıt üzeri</button>
+            <button type="button" data-gorunum="landed" aria-pressed="false" data-i18n="viewLanded">Şantiye istif</button>
+            <button type="button" data-gorunum="pv" aria-pressed="true" data-i18n="viewPv">Peşin karşılık</button>
+          </div>
+          <button class="btn btn-kucuk" id="kalemDuzenBtn" aria-pressed="false" data-i18n="editItems">Kalemleri düzenle</button>
+        </div>
+      </div>
+      <div class="cetvel-kap" id="cetvelIc"></div>
+    </section>
+
+    <section class="bolum" id="kirilma" aria-labelledby="kirilmaBaslik">
+      <div class="bolum-bas">
+        <div>
+          <h2 id="kirilmaBaslik" data-i18n="rateTitle">Faiz kırılma noktası</h2>
+          <p data-i18n="rateLead">Sıralama faize bağlıdır. Eğriler her tam teklifin bugünkü maliyetini aylık fon faizine göre çizer; kesiştikleri yerde lider değişir.</p>
+        </div>
+      </div>
+      <div class="grafik-kap" id="kirilmaIc"></div>
+    </section>
+
+    <section class="bolum" id="bolunmus" aria-labelledby="bolunmusBaslik">
+      <div class="bolum-bas">
+        <div>
+          <h2 id="bolunmusBaslik" data-i18n="splitTitle">Bölünmüş sipariş</h2>
+          <p data-i18n="splitLead">Her kalemi en ucuz veren firmadan almak, siparişe giren her firma için nakliye ve vinç bedelinin tamamını yeniden öder. Hesap bunu sayarak en iyi dağılımı arar.</p>
+        </div>
+      </div>
+      <div id="bolunmusIc"></div>
+    </section>
+
+    <section class="bolum" id="pazarlik" aria-labelledby="pazarlikBaslik">
+      <div class="bolum-bas">
+        <div>
+          <h2 id="pazarlikBaslik" data-i18n="negoTitle">Pazarlık reçetesi</h2>
+          <p data-i18n="negoLead"></p>
+        </div>
+      </div>
+      <div id="pazarlikIc"></div>
+    </section>
+
+    <section class="bolum" id="ciktilar" aria-labelledby="ciktilarBaslik">
+      <div class="bolum-bas">
+        <div>
+          <h2 id="ciktilarBaslik" data-i18n="outTitle">Çıktılar</h2>
+          <p data-i18n="outLead">İmzaya hazır form, sipariş mektubu ve tablolar. Veriler bu tarayıcıdan dışarı çıkmaz; dosyalar doğrudan cihazınıza iner.</p>
+        </div>
+      </div>
+      <div class="ciktilar" id="ciktilarIc"></div>
+      <p class="not-kutu" id="varsayimNotu"></p>
+    </section>
+  </main>
+
+  <aside class="dok" id="paketDok" aria-labelledby="dokBaslik">
+    <div class="dok-bas">
+      <h2 id="dokBaslik" data-i18n="dockTitle">Paketler</h2>
+      <button class="btn btn-kucuk dok-kapat" id="dokKapat" data-i18n="close">Kapat</button>
+    </div>
+    <label class="sr" for="dokAra" data-i18n="dockSearch">Paket ara</label>
+    <input class="alan" id="dokAra" type="search" autocomplete="off">
+    <div class="dok-kat" role="group" aria-label="Kategori" id="dokKat"></div>
+    <ol class="dok-liste" id="dokListe"></ol>
+    <div class="dok-alt">
+      <button class="bag" data-paket="__bos" data-i18n="menuEmpty">Yeni boş paket</button>
+      <button class="bag" data-paket="__ac" data-i18n="outOpen">Proje dosyası aç</button>
+    </div>
+  </aside>
+</div>
+
+<div class="masa-perde" id="masaPerde" hidden></div>
+
+<input type="file" id="projeDosya" accept="application/json,.json" hidden>
+<div class="ipucu" id="ipucu" role="tooltip"></div>
+<div class="bildirimler" id="bildirimler" aria-live="polite"></div>
+<div id="baski"></div>
+
+<script src="js/engine.js"></script>
+<script src="js/parser.js"></script>
+<script src="js/model.js"></script>
+<script src="js/scenarios.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/words.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/files.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
